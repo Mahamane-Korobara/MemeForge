@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MEME_MODELS, type MemeModel } from "./model-library-data";
 import { AI_MODELS_CACHE_KEY, REAL_MODELS_CACHE_KEY, buildFallbackAiModels, isValidModel, sanitizeModel } from "./model-library-utils";
-import { searchOpenverseImage } from "./openverse-image-search";
 
 type ImgflipResponse = {
   success: boolean;
@@ -72,14 +71,25 @@ function parseAiModels(raw: string) {
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return [];
   try {
-    return JSON.parse(jsonMatch[0]) as Array<{ name: string; headline: string; subtitle: string; category: string; query: string }>;
+    return JSON.parse(jsonMatch[0]) as Array<{
+      name: string;
+      headline: string;
+      subtitle: string;
+      category: string;
+      query: string;
+      textX?: number;
+      textY?: number;
+      textW?: number;
+      textH?: number;
+      subtitleY?: number;
+    }>;
   } catch {
     return [];
   }
 }
 
 function createAiModel(
-  data: { name: string; headline: string; subtitle: string; category: string },
+  data: { name: string; headline: string; subtitle: string; category: string; textX?: number; textY?: number; subtitleY?: number },
   baseTemplate: MemeModel,
   index: number,
   image?: { src: string; width: number; height: number; title: string },
@@ -96,6 +106,9 @@ function createAiModel(
     height: image?.height || baseTemplate.height,
     preview: image?.src || baseTemplate.imageSrc || baseTemplate.preview,
     imageSrc: image?.src || baseTemplate.imageSrc || baseTemplate.preview,
+    textX: data.textX ?? 50,
+    textY: data.textY,
+    subtitleY: data.subtitleY,
   };
 }
 
@@ -206,24 +219,26 @@ export function useModelLibrary() {
               parts: [
                 {
                   text:
-                    `Tu es un créateur de modèles de mèmes expert avec une connaissance approfondie de la recherche d'images. Génère 5 modèles de mème créatifs en français basés sur ce thème: "${aiPrompt}".
+                    `Tu es un expert en création de modèles de mèmes avec une connaissance approfondie de la composition visuelle. Génère 5 modèles de mème créatifs en français basés sur ce thème: "${aiPrompt}".
 
 Pour chaque modèle, crée un JSON avec:
 - "name": nom du modèle (court, descriptif)
 - "headline": texte principal percutant et humoristique (1-3 mots, style français actuel)
 - "subtitle": texte secondaire complétant l'ambiance (court, impactant)
 - "category": catégorie appropriée parmi: Réaction, Drame, Culte, Minimal, Punchline, Chaos, Screenshot, Poster
-- "query": requête de recherche d'image DIVERSE et SPECIFIQUE (3-5 mots) compatible avec Openverse. Varie les queries pour chaque modèle. Utilise des termes concrets, évite les emojis et caractères spéciaux. Exemples: "person laughing computer", "cat shocked expression", "developers coding office"
+- "query": requête de recherche d'image SPECIFIQUE et PERTINENTE (3-5 mots en anglais) qui correspond DIRECTEMENT au thème "${aiPrompt}". Chaque query doit être DIFFÉRENT. Termes concrets, pas d'emojis.
+- "textX": position horizontale du texte (0-100, en %) - centré = 50
+- "textY": position verticale du headline (0-100, en %) - haut = 20, milieu = 40, bas = 70
+- "subtitleY": position verticale du subtitle (0-100, en %) - doit être plus bas que textY
 
-IMPORTANT: Chaque "query" doit être DIFFÉRENT et PERTINENT au thème "${aiPrompt}". Ne pas répéter les mêmes mots-clés.
+IMPORTANT: Les images doivent être DIRECTEMENT LIÉES au thème "${aiPrompt}". Pas de généralités.
 
-Exemples de requêtes efficaces:
-- Pour "bug en production": "shocked developer office", "computer error screen", "person frustrated desk"
-- Pour "meeting surprise": "shocked group meeting", "surprised people conference", "office team surprised"
-- Pour "chat avec l'IA": "robot artificial intelligence", "person computer technology", "human machine interaction"
+Exemples:
+- Pour "bug en prod": query="coding error computer", textX=50, textY=30, subtitleY=70
+- Pour "réunion surprise": query="surprised people meeting office", textX=50, textY=25, subtitleY=65
+- Pour "chat avec IA": query="human talking to robot ai", textX=50, textY=35, subtitleY=75
 
-Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.
-Les textes doivent être humoristiques, courts et pertinents pour le thème: "${aiPrompt}".`,
+Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.`,
                 },
               ],
             },
@@ -245,11 +260,35 @@ Les textes doivent être humoristiques, courts et pertinents pour le thème: "${
       const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
       const parsed = parseAiModels(text).slice(0, 5);
       const baseModels = realModels.length ? realModels : MEME_MODELS;
+      
+      // Générer des indices aléatoires uniques pour les images
+      const usedIndices = new Set<number>();
+      const getRandomImageIndex = () => {
+        let index: number;
+        do {
+          index = Math.floor(Math.random() * baseModels.length);
+        } while (usedIndices.has(index) && usedIndices.size < baseModels.length);
+        usedIndices.add(index);
+        return index;
+      };
+      
       const models = await Promise.all(
         parsed.map(async (item, index) => {
           const baseTemplate = baseModels[(index * 7) % baseModels.length];
-          const image = await searchOpenverseImage(item.query || aiPrompt || item.headline || item.name);
-          return createAiModel(item, baseTemplate, index, image ?? undefined);
+          // Sélectionner une image ALÉATOIRE parmi les 100 modèles
+          const imageModelIndex = getRandomImageIndex();
+          const imageModel = baseModels[imageModelIndex];
+          
+          const image = imageModel.imageSrc
+            ? {
+                src: imageModel.imageSrc,
+                width: imageModel.width,
+                height: imageModel.height,
+                title: imageModel.name,
+              }
+            : undefined;
+          
+          return createAiModel(item, baseTemplate, index, image);
         }),
       );
       setAiModels(models);

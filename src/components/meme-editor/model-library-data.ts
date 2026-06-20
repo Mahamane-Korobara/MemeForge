@@ -18,6 +18,9 @@ export type MemeModel = {
   accentSoft: string;
   preview: string;
   imageSrc?: string;
+  textX?: number;
+  textY?: number;
+  subtitleY?: number;
 };
 
 const CATEGORIES = ["Réaction", "Drame", "Culte", "Minimal", "Punchline", "Chaos", "Screenshot", "Poster"];
@@ -234,7 +237,7 @@ export function createModelElements(model: MemeModel, options: { usePageImage?: 
     type: "text",
     text: model.headline,
     x: marginX,
-    y: Math.round(format.h * 0.28),
+    y: model.textY !== undefined ? Math.round((format.h * model.textY) / 100) : Math.round(format.h * 0.28),
     w: format.w - marginX * 2,
     h: Math.round(format.h * 0.2),
     rotation: 0,
@@ -259,7 +262,7 @@ export function createModelElements(model: MemeModel, options: { usePageImage?: 
     type: "text",
     text: model.subtitle,
     x: marginX,
-    y: Math.round(format.h * 0.52),
+    y: model.subtitleY !== undefined ? Math.round((format.h * model.subtitleY) / 100) : Math.round(format.h * 0.52),
     w: format.w - marginX * 2,
     h: Math.round(format.h * 0.12),
     rotation: 0,

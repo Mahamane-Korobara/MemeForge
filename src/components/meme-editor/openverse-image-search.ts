@@ -35,9 +35,10 @@ export async function searchOpenverseImage(query: string) {
     
     if (images.length === 0) return null;
 
-    // Sélectionner une image ALÉATOIRE au lieu de la première
-    const randomIndex = Math.floor(Math.random() * Math.min(images.length, 15));
-    const image = images[randomIndex];
+    // Prendre une image des TOP 3 meilleures résultats (moins aléatoire, plus pertinent)
+    const topResults = images.slice(0, 3);
+    const randomIndex = Math.floor(Math.random() * topResults.length);
+    const image = topResults[randomIndex];
     
     if (!image) return null;
 
