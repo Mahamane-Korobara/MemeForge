@@ -119,7 +119,7 @@ export function useModelLibrary() {
         try {
           const parsed = JSON.parse(cached) as Partial<MemeModel>[];
           const sanitized = parsed.map((model, index) => sanitizeModel(model, index)).filter(isValidModel);
-          if (sanitized.length >= 100) {
+          if (sanitized.length >= 50) {
             setRealModels(sanitized);
             setLoadingReal(false);
             return;
@@ -143,7 +143,7 @@ export function useModelLibrary() {
         setRealError("Aucun template réel trouvé.");
       }
     } catch (error) {
-      setRealModels((current) => (current.length ? current : MEME_MODELS));
+      setRealModels((current) => (current.length > 120 ? current : MEME_MODELS));
       setRealError(error instanceof Error ? error.message : "Chargement impossible");
     } finally {
       setLoadingReal(false);
@@ -206,10 +206,24 @@ export function useModelLibrary() {
               parts: [
                 {
                   text:
-                    `Génère 5 modèles de mème en français à partir du prompt suivant: "${aiPrompt}". ` +
-                    "Retourne uniquement un tableau JSON avec les clés name, headline, subtitle, category, query. " +
-                    "Le champ query doit contenir des mots-clés courts pour rechercher une image cohérente sur internet. " +
-                    "Les textes doivent être en français.",
+                    `Tu es un créateur de modèles de mèmes expert avec une connaissance approfondie de la recherche d'images. Génère 5 modèles de mème créatifs en français basés sur ce thème: "${aiPrompt}".
+
+Pour chaque modèle, crée un JSON avec:
+- "name": nom du modèle (court, descriptif)
+- "headline": texte principal percutant et humoristique (1-3 mots, style français actuel)
+- "subtitle": texte secondaire complétant l'ambiance (court, impactant)
+- "category": catégorie appropriée parmi: Réaction, Drame, Culte, Minimal, Punchline, Chaos, Screenshot, Poster
+- "query": requête de recherche d'image DIVERSE et SPECIFIQUE (3-5 mots) compatible avec Openverse. Varie les queries pour chaque modèle. Utilise des termes concrets, évite les emojis et caractères spéciaux. Exemples: "person laughing computer", "cat shocked expression", "developers coding office"
+
+IMPORTANT: Chaque "query" doit être DIFFÉRENT et PERTINENT au thème "${aiPrompt}". Ne pas répéter les mêmes mots-clés.
+
+Exemples de requêtes efficaces:
+- Pour "bug en production": "shocked developer office", "computer error screen", "person frustrated desk"
+- Pour "meeting surprise": "shocked group meeting", "surprised people conference", "office team surprised"
+- Pour "chat avec l'IA": "robot artificial intelligence", "person computer technology", "human machine interaction"
+
+Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.
+Les textes doivent être humoristiques, courts et pertinents pour le thème: "${aiPrompt}".`,
                 },
               ],
             },

@@ -57,14 +57,80 @@ function escapeXml(value: string) {
 function createPreview(model: Pick<MemeModel, "headline" | "subtitle" | "background" | "accent" | "accentSoft" | "layout" | "category" | "width" | "height">) {
   const headline = escapeXml(model.headline);
   const subtitle = escapeXml(model.subtitle);
+  
+  // Créer des dégradés sophistiqués et des designs variés
+  const designs = [
+    // Design 1: Gradient moderne avec formes
+    `<defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${model.background};stop-opacity:1" />
+        <stop offset="50%" style="stop-color:${model.accent};stop-opacity:0.7" />
+        <stop offset="100%" style="stop-color:${model.background};stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="${model.width}" height="${model.height}" fill="url(#grad1)"/>
+    <circle cx="${model.width * 0.8}" cy="${model.height * 0.2}" r="${model.height * 0.18}" fill="${model.accent}" opacity="0.3"/>
+    <circle cx="${model.width * 0.2}" cy="${model.height * 0.8}" r="${model.height * 0.15}" fill="${model.accent}" opacity="0.2"/>
+    <rect x="0" y="${model.height * 0.5}" width="${model.width}" height="${model.height * 0.5}" fill="${model.accent}" opacity="0.1"/>`,
+    
+    // Design 2: Bandes colorées
+    `<defs>
+      <linearGradient id="grad2" x1="0%" y1="100%" x2="0%" y2="0%">
+        <stop offset="0%" style="stop-color:${model.accent};stop-opacity:0.9" />
+        <stop offset="50%" style="stop-color:${model.background};stop-opacity:1" />
+        <stop offset="100%" style="stop-color:${model.background};stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="${model.width}" height="${model.height}" fill="url(#grad2)"/>
+    <rect x="0" y="0" width="${model.width * 0.3}" height="${model.height}" fill="${model.accent}" opacity="0.7"/>
+    <circle cx="${model.width * 0.5}" cy="${model.height * 0.4}" r="80" fill="${model.accent}" opacity="0.25"/>`,
+    
+    // Design 3: Triangles géométriques
+    `<defs>
+      <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${model.background};stop-opacity:1" />
+        <stop offset="100%" style="stop-color:${model.accent};stop-opacity:0.5" />
+      </linearGradient>
+    </defs>
+    <rect width="${model.width}" height="${model.height}" fill="url(#grad3)"/>
+    <polygon points="0,0 ${model.width},0 ${model.width * 0.5},${model.height * 0.4}" fill="${model.accent}" opacity="0.4"/>
+    <circle cx="${model.width * 0.3}" cy="${model.height * 0.7}" r="70" fill="${model.accent}" opacity="0.3"/>
+    <rect x="${model.width * 0.6}" y="${model.height * 0.6}" width="150" height="150" fill="${model.accent}" opacity="0.25" transform="rotate(45 ${model.width * 0.75} ${model.height * 0.75})"/>`,
+    
+    // Design 4: Vague diagonale
+    `<defs>
+      <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${model.background};stop-opacity:1" />
+        <stop offset="50%" style="stop-color:${model.accent};stop-opacity:0.4" />
+        <stop offset="100%" style="stop-color:${model.background};stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="${model.width}" height="${model.height}" fill="url(#grad4)"/>
+    <ellipse cx="${model.width}" cy="0" rx="300" ry="250" fill="${model.accent}" opacity="0.3"/>
+    <ellipse cx="0" cy="${model.height}" rx="280" ry="220" fill="${model.accent}" opacity="0.2"/>`,
+    
+    // Design 5: Carrés modernes
+    `<defs>
+      <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${model.accent};stop-opacity:0.2" />
+        <stop offset="50%" style="stop-color:${model.background};stop-opacity:1" />
+        <stop offset="100%" style="stop-color:${model.accent};stop-opacity:0.3" />
+      </linearGradient>
+    </defs>
+    <rect width="${model.width}" height="${model.height}" fill="url(#grad5)"/>
+    <rect x="${model.width * 0.05}" y="${model.height * 0.05}" width="${model.width * 0.4}" height="${model.height * 0.4}" fill="${model.accent}" opacity="0.3" rx="20"/>
+    <rect x="${model.width * 0.55}" y="${model.height * 0.55}" width="${model.width * 0.4}" height="${model.height * 0.4}" fill="${model.accent}" opacity="0.25" rx="20"/>`,
+  ];
+  
+  const designIndex = (headline.length + subtitle.length) % designs.length;
+  const bgDesign = designs[designIndex];
+  
   return `data:image/svg+xml;utf8,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${model.width} ${model.height}" width="${model.width}" height="${model.height}">
-      <rect width="${model.width}" height="${model.height}" fill="${model.background}"/>
-      ${model.layout === "split" ? `<rect x="0" y="0" width="${Math.round(model.width * 0.34)}" height="${model.height}" fill="${model.accent}" opacity="0.9"/>` : ""}
-      ${model.layout === "frame" ? `<rect x="${Math.round(model.width * 0.04)}" y="${Math.round(model.height * 0.04)}" width="${Math.round(model.width * 0.92)}" height="${Math.round(model.height * 0.92)}" rx="20" fill="none" stroke="${model.accent}" stroke-width="${Math.max(6, Math.round(model.width * 0.01))}"/>` : ""}
-      ${model.layout === "comic" ? `<path d="M${Math.round(model.width * 0.18)} ${Math.round(model.height * 0.72)} L${Math.round(model.width * 0.3)} ${Math.round(model.height * 0.67)} L${Math.round(model.width * 0.35)} ${Math.round(model.height * 0.85)} Z" fill="${model.accent}" opacity="0.9"/>` : ""}
-      <text x="50%" y="${model.layout === "split" ? 140 : 146}" text-anchor="middle" fill="#ffffff" font-size="40" font-family="Impact, Arial Black, sans-serif" font-weight="700">${headline}</text>
-      <text x="50%" y="${model.layout === "split" ? 198 : 204}" text-anchor="middle" fill="#f8fafc" font-size="22" font-family="Inter, Arial, sans-serif">${subtitle}</text>
+      ${bgDesign}
+      <text x="50%" y="${model.height * 0.35}" text-anchor="middle" fill="#000000" font-size="52" font-family="Impact, Arial Black, sans-serif" font-weight="900" opacity="0.15">${headline}</text>
+      <text x="50%" y="${model.height * 0.35}" text-anchor="middle" fill="#ffffff" font-size="52" font-family="Impact, Arial Black, sans-serif" font-weight="900" stroke="#000000" stroke-width="2">${headline}</text>
+      <text x="50%" y="${model.height * 0.6}" text-anchor="middle" fill="#ffffff" font-size="28" font-family="Arial, sans-serif" font-weight="bold">${subtitle}</text>
     </svg>`,
   )}`;
 }

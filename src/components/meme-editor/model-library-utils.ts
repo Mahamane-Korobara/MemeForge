@@ -42,13 +42,24 @@ export function buildFallbackAiModels(templates: MemeModel[], prompt: string) {
   const source = templates.length ? templates : MEME_MODELS;
   const cleaned = normalizePrompt(prompt) || "ce moment";
   const start = hashPrompt(cleaned) % source.length;
-  const headlines = ["Quand", "Moi quand", "Le moment où", "Ça arrive quand", "Le frontend quand"];
+  
+  const headlines = [
+    `Quand ${cleaned}`,
+    `Moi quand ${cleaned}`,
+    `Le moment où ${cleaned}`,
+    `${cleaned} et tout change`,
+    `Personne n'était prêt à ${cleaned}`,
+  ];
+  
   const subtitles = [
-    "et tout part en production.",
-    "et le bug revient.",
-    "et personne ne comprend pourquoi.",
-    "et tout le monde fait semblant d'avoir prévu ça.",
-    "et là, silence absolu.",
+    "Et personne n'était prêt.",
+    "Ça semblait une bonne idée.",
+    "La suite est illisible.",
+    "On garde ça secret.",
+    "Le résultat est discutable.",
+    "Et là, silence absolu.",
+    "Tout le monde a vu venir.",
+    "C'était inévitable.",
   ];
 
   return Array.from({ length: 5 }, (_, index) => {
@@ -58,8 +69,8 @@ export function buildFallbackAiModels(templates: MemeModel[], prompt: string) {
       id: `ai-${template.id}-${index}`,
       name: `IA ${template.name}`,
       category: "IA",
-      headline: `${headlines[index % headlines.length]} ${cleaned}`,
-      subtitle: subtitles[index % subtitles.length],
+      headline: headlines[index % headlines.length],
+      subtitle: subtitles[(index * 3 + start) % subtitles.length],
       zoneLabel: template.zoneLabel,
       preview: template.imageSrc ?? template.preview,
       imageSrc: template.imageSrc ?? template.preview,

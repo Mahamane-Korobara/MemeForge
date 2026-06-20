@@ -177,24 +177,32 @@ export function useMemeEditorShare({
         throw new Error("Impossible de préparer le fichier à partager");
       }
 
-      const shareData: ShareData = {
-        title: shareMessage.title,
-        text: shareMessage.text,
-        url: shareMessage.url,
-      };
-
-      if (navigator.canShare?.({ files: [file] })) {
-        shareData.files = [file];
-      }
-
+      // Toujours essayer de partager le fichier en priorité
       if (navigator.share) {
+        const shareData: ShareData = {
+          files: [file],
+          title: shareMessage.title,
+          text: shareMessage.text,
+        };
+
+        // Ajouter l'URL si le navigateur le supporte
+        if (navigator.canShare?.(shareData)) {
+          shareData.url = shareMessage.url;
+        }
+
         await navigator.share(shareData);
         return;
       }
 
+      // Fallback : copier le lien si le partage natif n'est pas disponible
       await copyText(shareMessage.url);
     } catch (shareError) {
-      setError(shareError instanceof Error ? shareError.message : "Partage impossible");
+      if (shareError instanceof Error && shareError.name === "AbortError") {
+        // L'utilisateur a annulé le partage, ce n'est pas une erreur
+        setError(null);
+      } else {
+        setError(shareError instanceof Error ? shareError.message : "Partage impossible");
+      }
     } finally {
       setBusy(false);
     }
