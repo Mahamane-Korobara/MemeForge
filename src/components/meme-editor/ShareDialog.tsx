@@ -12,6 +12,7 @@ type Props = {
   error?: string | null;
   onClose: () => void;
   onShareNative: () => Promise<void>;
+  onCopyImageToClipboard: () => Promise<void>;
   onCopyLink: () => Promise<void>;
 };
 
@@ -48,7 +49,7 @@ function ActionButton({
   );
 }
 
-export function ShareDialog({ open, title, text, url, shareLinks, busy, error, onClose, onShareNative, onCopyLink }: Props) {
+export function ShareDialog({ open, title, text, url, shareLinks, busy, error, onClose, onShareNative, onCopyImageToClipboard, onCopyLink }: Props) {
   if (!open) return null;
 
   return (
@@ -60,7 +61,7 @@ export function ShareDialog({ open, title, text, url, shareLinks, busy, error, o
               <Share2 className="h-4 w-4 text-purple" />
               <h2 className="text-base font-semibold">Partager le mème</h2>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Le lien de l'app vient de la configuration .env, et le fichier peut être partagé via le partage natif.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Partage l'image du mème directement (pas de lien) via le presse-papiers ou le partage natif.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-2 hover:bg-secondary" aria-label="Fermer">
             <X className="h-4 w-4" />
@@ -75,7 +76,7 @@ export function ShareDialog({ open, title, text, url, shareLinks, busy, error, o
 
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <button
             type="button"
             onClick={() => void onShareNative()}
@@ -83,15 +84,24 @@ export function ShareDialog({ open, title, text, url, shareLinks, busy, error, o
             className="flex items-center justify-center gap-2 rounded-xl bg-purple px-3 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             <Share2 className="h-4 w-4" />
-            {busy ? "Préparation..." : "Partager le fichier"}
+            {busy ? "Préparation..." : "Partager"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void onCopyImageToClipboard()}
+            disabled={busy}
+            className="flex items-center justify-center gap-2 rounded-xl border border-panel-border bg-secondary px-3 py-3 text-sm font-medium hover:bg-panel disabled:opacity-50"
+          >
+            <Copy className="h-4 w-4" />
+            Copier l'image
           </button>
           <button
             type="button"
             onClick={() => void onCopyLink()}
             className="flex items-center justify-center gap-2 rounded-xl border border-panel-border bg-secondary px-3 py-3 text-sm font-medium hover:bg-panel"
           >
-            <Copy className="h-4 w-4" />
-            Copier le lien
+            <Link2 className="h-4 w-4" />
+            Copier lien
           </button>
         </div>
 

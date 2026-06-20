@@ -82,6 +82,7 @@ function parseAiModels(raw: string) {
       textW?: number;
       textH?: number;
       subtitleY?: number;
+      imageIndex?: number;
     }>;
   } catch {
     return [];
@@ -219,24 +220,28 @@ export function useModelLibrary() {
               parts: [
                 {
                   text:
-                    `Tu es un expert en création de modèles de mèmes avec une connaissance approfondie de la composition visuelle. Génère 5 modèles de mème créatifs en français basés sur ce thème: "${aiPrompt}".
+                    `Tu es un expert en création de modèles de mèmes avec une connaissance approfondie de la composition visuelle et de la sélection d'images. Génère 5 modèles de mème créatifs en français basés sur ce thème: "${aiPrompt}".
+
+Nous avons 100 templates mèmes disponibles avec des thèmes variés. Sélectionne le template IMAGE approprié qui CORRESPOND aux textes que tu génères.
 
 Pour chaque modèle, crée un JSON avec:
 - "name": nom du modèle (court, descriptif)
 - "headline": texte principal percutant et humoristique (1-3 mots, style français actuel)
 - "subtitle": texte secondaire complétant l'ambiance (court, impactant)
 - "category": catégorie appropriée parmi: Réaction, Drame, Culte, Minimal, Punchline, Chaos, Screenshot, Poster
-- "query": requête de recherche d'image SPECIFIQUE et PERTINENTE (3-5 mots en anglais) qui correspond DIRECTEMENT au thème "${aiPrompt}". Chaque query doit être DIFFÉRENT. Termes concrets, pas d'emojis.
+- "query": requête de recherche (non utilisée, mais garder pour compatibilité)
 - "textX": position horizontale du texte (0-100, en %) - centré = 50
 - "textY": position verticale du headline (0-100, en %) - haut = 20, milieu = 40, bas = 70
 - "subtitleY": position verticale du subtitle (0-100, en %) - doit être plus bas que textY
+- "imageIndex": indice du template (0-99) QUI CORRESPOND AUX TEXTES que tu as généré. CHAQUE modèle doit avoir un imageIndex DIFFÉRENT et APPROPRIÉ. Exemples:
+  * Pour texte "bug en prod" → choisir index lié au développement/erreur
+  * Pour texte "réunion surprise" → choisir index lié aux gens/surprise
+  * Pour texte "chat avec IA" → choisir index lié à la technologie/IA
 
-IMPORTANT: Les images doivent être DIRECTEMENT LIÉES au thème "${aiPrompt}". Pas de généralités.
-
-Exemples:
-- Pour "bug en prod": query="coding error computer", textX=50, textY=30, subtitleY=70
-- Pour "réunion surprise": query="surprised people meeting office", textX=50, textY=25, subtitleY=65
-- Pour "chat avec IA": query="human talking to robot ai", textX=50, textY=35, subtitleY=75
+IMPORTANT:
+- Chaque imageIndex DOIT ÊTRE DIFFÉRENT (0, 10, 25, 50, 75 par exemple)
+- Sélectionne des templates visuels qui CORRESPONDENT aux textes générés
+- Pas d'indices répétés dans les 5 modèles
 
 Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.`,
                 },
@@ -261,22 +266,11 @@ Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.`,
       const parsed = parseAiModels(text).slice(0, 5);
       const baseModels = realModels.length ? realModels : MEME_MODELS;
       
-      // Générer des indices aléatoires uniques pour les images
-      const usedIndices = new Set<number>();
-      const getRandomImageIndex = () => {
-        let index: number;
-        do {
-          index = Math.floor(Math.random() * baseModels.length);
-        } while (usedIndices.has(index) && usedIndices.size < baseModels.length);
-        usedIndices.add(index);
-        return index;
-      };
-      
       const models = await Promise.all(
-        parsed.map(async (item, index) => {
-          const baseTemplate = baseModels[(index * 7) % baseModels.length];
-          // Sélectionner une image ALÉATOIRE parmi les 100 modèles
-          const imageModelIndex = getRandomImageIndex();
+        parsed.map(async (item) => {
+          const baseTemplate = baseModels[(Math.random() * baseModels.length) | 0];
+          // Utiliser l'imageIndex généré par l'IA pour sélectionner l'image appropriée
+          const imageModelIndex = Math.min(Math.max(0, item.imageIndex ?? 0), baseModels.length - 1);
           const imageModel = baseModels[imageModelIndex];
           
           const image = imageModel.imageSrc
@@ -288,7 +282,7 @@ Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.`,
               }
             : undefined;
           
-          return createAiModel(item, baseTemplate, index, image);
+          return createAiModel(item, baseTemplate, imageModelIndex, image);
         }),
       );
       setAiModels(models);

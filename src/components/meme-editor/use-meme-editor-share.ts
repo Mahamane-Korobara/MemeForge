@@ -21,10 +21,9 @@ async function captureImageBlob(
   canvasRef: RefObject<HTMLDivElement | null>,
   selectedId: string | null,
   setSelectedId: (value: string | null) => void,
-  docName: string,
   format: Format,
   canvasBg: string,
-) {
+): Promise<Blob | null> {
   if (!canvasRef.current) return null;
   setSelectedId(null);
   await new Promise((resolve) => setTimeout(resolve, 60));
@@ -39,8 +38,7 @@ async function captureImageBlob(
       backgroundColor: canvasBg,
     });
     const response = await fetch(dataUrl);
-    const blob = await response.blob();
-    return new File([blob], `${docName}_${format.w}x${format.h}.png`, { type: blob.type || "image/png" });
+    return response.blob();
   } finally {
     node.style.transform = previousTransform;
     setSelectedId(selectedId);
@@ -51,12 +49,11 @@ async function captureVideoBlob({
   canvasRef,
   selectedId,
   format,
-  docName,
   videoSrc,
   videoStart,
   videoEnd,
   setSelectedId,
-}: Params) {
+}: Params): Promise<Blob | null> {
   if (!videoSrc || !canvasRef.current) return null;
 
   setSelectedId(null);
@@ -136,8 +133,7 @@ async function captureVideoBlob({
     await recorderDone;
     cancelAnimationFrame(rafId);
 
-    const blob = new Blob(chunks, { type: mime });
-    return new File([blob], `${docName}_${format.w}x${format.h}.webm`, { type: mime });
+    return new Blob(chunks, { type: mime });
   } finally {
     node.style.transform = previousTransform;
     setSelectedId(selectedId);
@@ -161,34 +157,35 @@ export function useMemeEditorShare({
   const shareMessage = useMemo(() => buildShareMessage(docName), [docName]);
   const shareLinks = useMemo(() => buildShareLinks(shareMessage), [shareMessage]);
 
-  const createShareFile = useCallback(async () => {
+  const createShareBlob = useCallback(async (): Promise<Blob | null> => {
     if (videoSrc) {
       return captureVideoBlob({ canvasRef, selectedId, setSelectedId, docName, format, canvasBg, videoSrc, videoStart, videoEnd });
     }
-    return captureImageBlob(canvasRef, selectedId, setSelectedId, docName, format, canvasBg);
+    return captureImageBlob(canvasRef, selectedId, setSelectedId, format, canvasBg);
   }, [canvasBg, canvasRef, docName, format, selectedId, setSelectedId, videoEnd, videoSrc, videoStart]);
 
   const shareNative = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const file = await createShareFile();
-      if (!file) {
+      const blob = await createShareBlob();
+      if (!blob) {
         throw new Error("Impossible de préparer le fichier à partager");
       }
 
-      // Toujours essayer de partager le fichier en priorité
       if (navigator.share) {
+        const fileName = videoSrc 
+          ? `${docName}_${format.w}x${format.h}.webm`
+          : `${docName}_${format.w}x${format.h}.png`;
+        
+        const file = new File([blob], fileName, { type: blob.type });
+        
         const shareData: ShareData = {
           files: [file],
           title: shareMessage.title,
           text: shareMessage.text,
+          url: shareMessage.url,
         };
-
-        // Ajouter l'URL si le navigateur le supporte
-        if (navigator.canShare?.(shareData)) {
-          shareData.url = shareMessage.url;
-        }
 
         await navigator.share(shareData);
         return;
@@ -198,7 +195,6 @@ export function useMemeEditorShare({
       await copyText(shareMessage.url);
     } catch (shareError) {
       if (shareError instanceof Error && shareError.name === "AbortError") {
-        // L'utilisateur a annulé le partage, ce n'est pas une erreur
         setError(null);
       } else {
         setError(shareError instanceof Error ? shareError.message : "Partage impossible");
@@ -206,7 +202,27 @@ export function useMemeEditorShare({
     } finally {
       setBusy(false);
     }
-  }, [createShareFile, shareMessage]);
+  }, [createShareBlob, shareMessage, videoSrc, format.w, format.h, docName]);
+
+  const copyImageToClipboard = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const blob = await createShareBlob();
+      if (!blob) {
+        throw new Error("Impossible de préparer l'image");
+      }
+
+      // Copier directement dans le presse-papiers (Ctrl+V sur les réseaux sociaux)
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob }),
+      ]);
+    } catch (clipboardError) {
+      setError(clipboardError instanceof Error ? clipboardError.message : "Copie impossible");
+    } finally {
+      setBusy(false);
+    }
+  }, [createShareBlob]);
 
   const copyLink = useCallback(async () => {
     await copyText(shareMessage.url);
@@ -222,6 +238,7 @@ export function useMemeEditorShare({
     },
     actions: {
       shareNative,
+      copyImageToClipboard,
       copyLink,
     },
   };
