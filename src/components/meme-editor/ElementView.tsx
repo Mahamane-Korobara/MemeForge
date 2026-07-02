@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Element, ImageEl, ShapeEl, TextEl } from "./types";
 import { ShapeSVG } from "./ShapeSVG";
 
@@ -16,17 +16,18 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
   const ref = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
 
-  const startDrag = (e: ReactMouseEvent) => {
+  const startDrag = (e: ReactPointerEvent) => {
     e.stopPropagation();
     onSelect();
     if (editing) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
 
     const startX = e.clientX;
     const startY = e.clientY;
     const originX = el.x;
     const originY = el.y;
 
-    const move = (event: MouseEvent) => {
+    const move = (event: PointerEvent) => {
       onChange({
         x: originX + (event.clientX - startX) / scale,
         y: originY + (event.clientY - startY) / scale,
@@ -34,22 +35,25 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
     };
 
     const up = () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       onCommit();
     };
 
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
-  const startResize = (corner: string) => (e: ReactMouseEvent) => {
+  const startResize = (corner: string) => (e: ReactPointerEvent) => {
     e.stopPropagation();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     const startX = e.clientX;
     const startY = e.clientY;
     const { x, y, w, h } = el;
 
-    const move = (event: MouseEvent) => {
+    const move = (event: PointerEvent) => {
       const dx = (event.clientX - startX) / scale;
       const dy = (event.clientY - startY) / scale;
       let nextX = x;
@@ -84,35 +88,40 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
     };
 
     const up = () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       onCommit();
     };
 
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
-  const startRotate = (e: ReactMouseEvent) => {
+  const startRotate = (e: ReactPointerEvent) => {
     e.stopPropagation();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     const rect = ref.current?.getBoundingClientRect();
     if (!rect) return;
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    const move = (event: MouseEvent) => {
+    const move = (event: PointerEvent) => {
       const angle = (Math.atan2(event.clientY - centerY, event.clientX - centerX) * 180) / Math.PI + 90;
       onChange({ rotation: angle });
     };
 
     const up = () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       onCommit();
     };
 
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   const borderWidth = 2 / scale;
@@ -123,7 +132,7 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
   return (
     <div
       ref={ref}
-      onMouseDown={startDrag}
+      onPointerDown={startDrag}
       onDoubleClick={() => el.type === "text" && setEditing(true)}
       className="absolute select-none"
       style={{
@@ -134,6 +143,7 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
         transform: `rotate(${el.rotation}deg)`,
         zIndex: el.z,
         cursor: editing ? "text" : "move",
+        touchAction: editing ? "auto" : "none",
       }}
     >
       {el.type === "text" ? (
@@ -199,7 +209,7 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
           {["nw", "ne", "sw", "se"].map((corner) => (
             <div
               key={corner}
-              onMouseDown={startResize(corner)}
+              onPointerDown={startResize(corner)}
               className="absolute rounded-sm bg-white ring-1 ring-purple"
               style={{
                 width: handleSize,
@@ -209,12 +219,14 @@ export function ElementView({ el, selected, scale, onSelect, onChange, onCommit 
                 top: corner.includes("n") ? -handleSize / 2 : "auto",
                 bottom: corner.includes("s") ? -handleSize / 2 : "auto",
                 cursor: `${corner}-resize`,
+                touchAction: "none",
               }}
             />
           ))}
           <div
-            onMouseDown={startRotate}
+            onPointerDown={startRotate}
             className="absolute left-1/2 -top-6 h-4 w-4 -translate-x-1/2 cursor-grab rounded-full bg-purple shadow"
+            style={{ touchAction: "none" }}
           />
         </>
       )}

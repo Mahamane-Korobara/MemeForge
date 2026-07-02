@@ -67,7 +67,7 @@ export function EditorCanvas({
     <main
       ref={stageRef}
       className="relative min-h-0 flex-1 overflow-auto bg-app-bg"
-      onMouseDown={(event) => {
+      onPointerDown={(event) => {
         if (event.target === event.currentTarget) onClearSelection();
       }}
     >
@@ -109,7 +109,9 @@ export function EditorCanvas({
         >
           <div
             ref={canvasRef}
-            onMouseDown={() => onClearSelection()}
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) onClearSelection();
+            }}
             className="relative overflow-hidden rounded-md shadow-2xl"
             style={{
               width: format.w,
