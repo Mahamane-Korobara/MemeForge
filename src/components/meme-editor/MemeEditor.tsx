@@ -29,6 +29,10 @@ export function MemeEditor() {
     setSidebarOpen(false);
     void actions.applyModel(model);
   };
+  const handleApplyMeme = (...args: Parameters<typeof actions.applyDirectorMeme>) => {
+    setSidebarOpen(false);
+    void actions.applyDirectorMeme(...args);
+  };
 
   return (
     <div className="flex h-dvh w-full min-w-0 flex-col overflow-hidden bg-app-bg">
@@ -67,6 +71,7 @@ export function MemeEditor() {
           onAddTextPreset={actions.addTextPreset}
           onAddShape={actions.addShape}
           onApplyModel={handleApplyModel}
+          onApplyMeme={handleApplyMeme}
           search={state.search}
           onSearchChange={actions.setSearch}
           uploads={state.uploads}

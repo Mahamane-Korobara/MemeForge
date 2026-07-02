@@ -5,6 +5,7 @@ import type { Format, PanelKey, ShapeKind } from "./types";
 import { StickerLibrary, type LibraryMode } from "./StickerLibrary";
 import { ModelLibrary } from "./ModelLibrary";
 import type { MemeModel } from "./model-library-data";
+import type { MemeFormat } from "./meme-formats";
 import { MyCreations } from "@/components/library/MyCreations";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   onAddTextPreset: (preset: { label: string; font: string; size: number; bold?: boolean }) => void;
   onAddShape: (kind: ShapeKind) => void;
   onApplyModel: (model: MemeModel) => void;
+  onApplyMeme: (format: MemeFormat, fills: Record<string, string>) => void;
   search: string;
   onSearchChange: (value: string) => void;
   uploads: string[];
@@ -61,6 +63,7 @@ export function EditorSidebar({
   onAddTextPreset,
   onAddShape,
   onApplyModel,
+  onApplyMeme,
   search,
   onSearchChange,
   uploads,
@@ -92,7 +95,7 @@ export function EditorSidebar({
     <>
       {isOpen && <button type="button" onClick={onClose} className="fixed inset-0 z-20 bg-black/30 lg:hidden" aria-label="Fermer le panneau" />}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-[min(92vw,20rem)] border-r border-panel-border bg-panel shadow-2xl transition-transform duration-200 lg:static lg:z-auto lg:w-72 lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-30 w-[min(94vw,24rem)] border-r border-panel-border bg-panel shadow-2xl transition-transform duration-200 lg:static lg:z-auto lg:w-[22rem] lg:translate-x-0 lg:shadow-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -235,7 +238,7 @@ export function EditorSidebar({
 
             {activePanel === "templates" && (
               <div className="space-y-5">
-                <ModelLibrary onApplyModel={onApplyModel} />
+                <ModelLibrary onApplyModel={onApplyModel} onApplyMeme={onApplyMeme} />
               </div>
             )}
 

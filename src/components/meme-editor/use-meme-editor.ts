@@ -4,6 +4,7 @@ import { useMemeEditorMedia } from "./use-meme-editor-media";
 import { useMemeEditorState } from "./use-meme-editor-state";
 import type { MemeModel } from "./model-library-data";
 import { MEME_MODELS, createModelElements } from "./model-library-data";
+import { formatToElements, type MemeFormat } from "./meme-formats";
 
 type ImgflipResponse = {
   success: boolean;
@@ -63,6 +64,15 @@ async function toDataUrl(source: string) {
   });
 }
 
+function loadImageSize(src: string) {
+  return new Promise<{ w: number; h: number }>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve({ w: image.naturalWidth || 1200, h: image.naturalHeight || 900 });
+    image.onerror = () => resolve({ w: 1200, h: 900 });
+    image.src = src;
+  });
+}
+
 export function useMemeEditor() {
   const editorState = useMemeEditorState();
   const initializedRef = useRef(false);
@@ -101,6 +111,20 @@ export function useMemeEditor() {
     } else {
       editorState.actions.setElements(createModelElements(nextModel));
     }
+    editorState.actions.setSelectedId(null);
+  };
+
+  const applyDirectorMeme = async (format: MemeFormat, fills: Record<string, string>) => {
+    let src = format.imageUrl;
+    try {
+      src = await toDataUrl(format.imageUrl);
+    } catch {
+      src = format.imageUrl;
+    }
+    const { w, h } = await loadImageSize(src);
+    editorState.actions.pushHistory(editorState.state.elements);
+    await media.actions.setImageAsPage(src);
+    editorState.actions.setElements(formatToElements(format, fills, w, h));
     editorState.actions.setSelectedId(null);
   };
 
@@ -176,6 +200,7 @@ export function useMemeEditor() {
       ...media.actions,
       ...exportState.actions,
       applyModel,
+      applyDirectorMeme,
     },
   };
 }

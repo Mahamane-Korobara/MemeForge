@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MEME_MODELS, type MemeModel } from "./model-library-data";
-import { AI_MODELS_CACHE_KEY, REAL_MODELS_CACHE_KEY, buildFallbackAiModels, isValidModel, sanitizeModel } from "./model-library-utils";
+import { REAL_MODELS_CACHE_KEY, isValidModel, sanitizeModel } from "./model-library-utils";
 
 type ImgflipResponse = {
   success: boolean;
@@ -67,61 +67,11 @@ function mapRealModel(item: { id: string; name: string; url: string; width: numb
   };
 }
 
-function parseAiModels(raw: string) {
-  const jsonMatch = raw.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return [];
-  try {
-    return JSON.parse(jsonMatch[0]) as Array<{
-      name: string;
-      headline: string;
-      subtitle: string;
-      category: string;
-      query: string;
-      textX?: number;
-      textY?: number;
-      textW?: number;
-      textH?: number;
-      subtitleY?: number;
-      imageIndex?: number;
-    }>;
-  } catch {
-    return [];
-  }
-}
-
-function createAiModel(
-  data: { name: string; headline: string; subtitle: string; category: string; textX?: number; textY?: number; subtitleY?: number },
-  baseTemplate: MemeModel,
-  index: number,
-  image?: { src: string; width: number; height: number; title: string },
-): MemeModel {
-  return {
-    ...baseTemplate,
-    id: `ai-${index}-${baseTemplate.id}`,
-    name: data.name || `IA ${baseTemplate.name}`,
-    category: data.category || "IA",
-    headline: data.headline || baseTemplate.headline,
-    subtitle: data.subtitle || baseTemplate.subtitle,
-    zoneLabel: baseTemplate.zoneLabel,
-    width: image?.width || baseTemplate.width,
-    height: image?.height || baseTemplate.height,
-    preview: image?.src || baseTemplate.imageSrc || baseTemplate.preview,
-    imageSrc: image?.src || baseTemplate.imageSrc || baseTemplate.preview,
-    textX: data.textX ?? 50,
-    textY: data.textY,
-    subtitleY: data.subtitleY,
-  };
-}
-
 export function useModelLibrary() {
   const [query, setQuery] = useState("");
   const [realModels, setRealModels] = useState<MemeModel[]>(MEME_MODELS);
   const [loadingReal, setLoadingReal] = useState(true);
   const [realError, setRealError] = useState<string | null>(null);
-  const [aiPrompt, setAiPrompt] = useState("un meme de bug drôle sur un frontend trop confiant");
-  const [aiModels, setAiModels] = useState<MemeModel[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
 
   const loadRealModels = useCallback(async (forceRefresh = false) => {
     setLoadingReal(true);
@@ -168,24 +118,6 @@ export function useModelLibrary() {
     void loadRealModels();
   }, [loadRealModels]);
 
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem(AI_MODELS_CACHE_KEY);
-      if (!cached) return;
-      const parsed = JSON.parse(cached) as Partial<MemeModel>[];
-      const sanitized = parsed.map((model, index) => sanitizeModel(model, index)).filter(isValidModel).slice(0, 5);
-      if (sanitized.length) setAiModels(sanitized);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    if (realModels.length && !aiModels.length) {
-      setAiModels(buildFallbackAiModels(realModels.slice(0, 20), aiPrompt));
-    }
-  }, [aiModels.length, aiPrompt, realModels]);
-
   const filteredRealModels = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return realModels.filter((model) => {
@@ -194,128 +126,15 @@ export function useModelLibrary() {
     });
   }, [query, realModels]);
 
-  const generateAiModels = useCallback(async () => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
-    const model = import.meta.env.VITE_GEMINI_MODEL?.trim() || "gemini-2.5-flash";
-    if (!apiKey) {
-      setAiError("VITE_GEMINI_API_KEY manquant");
-      return;
-    }
-
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          generationConfig: {
-            responseMimeType: "application/json",
-          },
-          contents: [
-            {
-              parts: [
-                {
-                  text:
-                    `Tu es un expert en création de modèles de mèmes avec une connaissance approfondie de la composition visuelle et de la sélection d'images. Génère 5 modèles de mème créatifs en français basés sur ce thème: "${aiPrompt}".
-
-Nous avons 100 templates mèmes disponibles avec des thèmes variés. Sélectionne le template IMAGE approprié qui CORRESPOND aux textes que tu génères.
-
-Pour chaque modèle, crée un JSON avec:
-- "name": nom du modèle (court, descriptif)
-- "headline": texte principal percutant et humoristique (1-3 mots, style français actuel)
-- "subtitle": texte secondaire complétant l'ambiance (court, impactant)
-- "category": catégorie appropriée parmi: Réaction, Drame, Culte, Minimal, Punchline, Chaos, Screenshot, Poster
-- "query": requête de recherche (non utilisée, mais garder pour compatibilité)
-- "textX": position horizontale du texte (0-100, en %) - centré = 50
-- "textY": position verticale du headline (0-100, en %) - haut = 20, milieu = 40, bas = 70
-- "subtitleY": position verticale du subtitle (0-100, en %) - doit être plus bas que textY
-- "imageIndex": indice du template (0-99) QUI CORRESPOND AUX TEXTES que tu as généré. CHAQUE modèle doit avoir un imageIndex DIFFÉRENT et APPROPRIÉ. Exemples:
-  * Pour texte "bug en prod" → choisir index lié au développement/erreur
-  * Pour texte "réunion surprise" → choisir index lié aux gens/surprise
-  * Pour texte "chat avec IA" → choisir index lié à la technologie/IA
-
-IMPORTANT:
-- Chaque imageIndex DOIT ÊTRE DIFFÉRENT (0, 10, 25, 50, 75 par exemple)
-- Sélectionne des templates visuels qui CORRESPONDENT aux textes générés
-- Pas d'indices répétés dans les 5 modèles
-
-Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après.`,
-                },
-              ],
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        if (response.status === 429 || /quota|resource_exhausted/i.test(text)) {
-          setAiError("Quota Gemini atteint pour la génération de modèles.");
-        } else {
-          setAiError(`Gemini ${response.status}: ${text.slice(0, 200)}`);
-        }
-        return;
-      }
-
-      const payload = (await response.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-      const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
-      const parsed = parseAiModels(text).slice(0, 5);
-      const baseModels = realModels.length ? realModels : MEME_MODELS;
-      
-      const models = await Promise.all(
-        parsed.map(async (item) => {
-          const baseTemplate = baseModels[(Math.random() * baseModels.length) | 0];
-          // Utiliser l'imageIndex généré par l'IA pour sélectionner l'image appropriée
-          const imageModelIndex = Math.min(Math.max(0, item.imageIndex ?? 0), baseModels.length - 1);
-          const imageModel = baseModels[imageModelIndex];
-          
-          const image = imageModel.imageSrc
-            ? {
-                src: imageModel.imageSrc,
-                width: imageModel.width,
-                height: imageModel.height,
-                title: imageModel.name,
-              }
-            : undefined;
-          
-          return createAiModel(item, baseTemplate, imageModelIndex, image);
-        }),
-      );
-      setAiModels(models);
-      localStorage.setItem(AI_MODELS_CACHE_KEY, JSON.stringify(models));
-      if (!parsed.length) {
-        setAiError("Réponse IA invalide");
-        setAiModels(buildFallbackAiModels(realModels.slice(0, 20), aiPrompt));
-      }
-    } catch (error) {
-      setAiError(error instanceof Error ? error.message : "Génération impossible");
-      if (!aiModels.length) {
-        setAiModels(buildFallbackAiModels(realModels.slice(0, 20), aiPrompt));
-      }
-    } finally {
-      setAiLoading(false);
-    }
-  }, [aiPrompt, realModels, aiModels.length]);
-
   return {
     state: {
       query,
       realModels: filteredRealModels,
       loadingReal,
       realError,
-      aiPrompt,
-      aiModels,
-      aiLoading,
-      aiError,
     },
     actions: {
       setQuery,
-      setAiPrompt,
-      generateAiModels,
       refresh: () => void loadRealModels(true),
     },
   };
