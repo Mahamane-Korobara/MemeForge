@@ -10,6 +10,7 @@ type Props = {
   shareLinks: Record<"x" | "facebook" | "whatsapp" | "linkedin" | "email", string>;
   busy?: boolean;
   error?: string | null;
+  notice?: string | null;
   onClose: () => void;
   onShareNative: () => Promise<void>;
   onCopyImageToClipboard: () => Promise<void>;
@@ -49,7 +50,7 @@ function ActionButton({
   );
 }
 
-export function ShareDialog({ open, title, text, url, shareLinks, busy, error, onClose, onShareNative, onCopyImageToClipboard, onCopyLink }: Props) {
+export function ShareDialog({ open, title, text, url, shareLinks, busy, error, notice, onClose, onShareNative, onCopyImageToClipboard, onCopyLink }: Props) {
   if (!open) return null;
 
   return (
@@ -75,6 +76,7 @@ export function ShareDialog({ open, title, text, url, shareLinks, busy, error, o
         </div>
 
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+        {notice && <p className="mt-3 text-sm text-purple">{notice}</p>}
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <button
@@ -84,7 +86,7 @@ export function ShareDialog({ open, title, text, url, shareLinks, busy, error, o
             className="flex items-center justify-center gap-2 rounded-xl bg-purple px-3 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             <Share2 className="h-4 w-4" />
-            {busy ? "Préparation..." : "Partager"}
+            {busy ? "Préparation..." : "Partager le mème"}
           </button>
           <button
             type="button"
@@ -105,7 +107,8 @@ export function ShareDialog({ open, title, text, url, shareLinks, busy, error, o
           </button>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Partager un lien vers l'app</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <ActionButton href={shareLinks.x} icon={X} label="Partager sur X">
             X
           </ActionButton>

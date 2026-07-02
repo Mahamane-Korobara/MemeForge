@@ -76,6 +76,7 @@ export function useGifMemeDirector() {
   const [loading, setLoading] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -143,22 +144,59 @@ export function useGifMemeDirector() {
     [situation, tone],
   );
 
-  const download = useCallback(async (variant: GifVariant) => {
-    if (!gifMemeSupported()) {
-      setError("Ton navigateur ne permet pas de générer le GIF (ImageDecoder indisponible). Essaie Chrome/Edge/Firefox à jour.");
-      return;
-    }
-    setDownloadingId(variant.id);
-    setError(null);
-    try {
-      const blob = await renderCaptionedGif(variant.gifUrl, { topText: variant.topText, bottomText: variant.bottomText });
-      downloadBlob(blob, `meme_${variant.query.replace(/\s+/g, "-") || "gif"}.gif`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Création du GIF impossible.");
-    } finally {
-      setDownloadingId(null);
-    }
+  const renderVariantGif = useCallback(async (variant: GifVariant) => {
+    const blob = await renderCaptionedGif(variant.gifUrl, { topText: variant.topText, bottomText: variant.bottomText });
+    return { blob, fileName: `meme_${variant.query.replace(/\s+/g, "-") || "gif"}.gif` };
   }, []);
+
+  const download = useCallback(
+    async (variant: GifVariant) => {
+      if (!gifMemeSupported()) {
+        setError("Ton navigateur ne permet pas de générer le GIF (ImageDecoder indisponible). Essaie Chrome/Edge/Firefox à jour.");
+        return;
+      }
+      setDownloadingId(variant.id);
+      setError(null);
+      try {
+        const { blob, fileName } = await renderVariantGif(variant);
+        downloadBlob(blob, fileName);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Création du GIF impossible.");
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [renderVariantGif],
+  );
+
+  // Partage le GIF animé lui-même (fichier .gif) via le partage natif, sinon le télécharge.
+  const share = useCallback(
+    async (variant: GifVariant) => {
+      if (!gifMemeSupported()) {
+        setError("Ton navigateur ne permet pas de générer le GIF. Essaie Chrome/Edge/Firefox à jour.");
+        return;
+      }
+      setSharingId(variant.id);
+      setError(null);
+      try {
+        const { blob, fileName } = await renderVariantGif(variant);
+        const file = new File([blob], fileName, { type: "image/gif" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: "Mème GIF" });
+        } else {
+          downloadBlob(blob, fileName);
+          setError("Partage natif indisponible ici : le GIF a été téléchargé.");
+        }
+      } catch (err) {
+        if (!(err instanceof Error && err.name === "AbortError")) {
+          setError(err instanceof Error ? err.message : "Partage du GIF impossible.");
+        }
+      } finally {
+        setSharingId(null);
+      }
+    },
+    [renderVariantGif],
+  );
 
   return {
     state: {
@@ -169,11 +207,12 @@ export function useGifMemeDirector() {
       loading,
       regeneratingId,
       downloadingId,
+      sharingId,
       error,
       notice,
       supported: gifMemeSupported(),
       hasKeys: hasGeminiKey() && hasGiphyKey(),
     },
-    actions: { setSituation, setTone, setCount, generate, regenerate, download },
+    actions: { setSituation, setTone, setCount, generate, regenerate, download, share },
   };
 }

@@ -134,6 +134,7 @@ export function MemeEditor() {
         shareLinks={share.state.shareLinks}
         busy={share.state.busy}
         error={share.state.error}
+        notice={share.state.notice}
         onClose={() => setShareOpen(false)}
         onShareNative={share.actions.shareNative}
         onCopyImageToClipboard={share.actions.copyImageToClipboard}

@@ -1,4 +1,4 @@
-import { Download, Film, Loader2, RefreshCw } from "lucide-react";
+import { Download, Film, Loader2, RefreshCw, Share2 } from "lucide-react";
 import { GIF_COUNT_MAX, GIF_COUNT_MIN, type GifVariant, useGifMemeDirector } from "./use-gif-meme-director";
 import type { DirectorTone } from "./use-meme-director";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,15 +36,20 @@ function GifCard({
   variant,
   regenerating,
   downloading,
+  sharing,
   onRegenerate,
   onDownload,
+  onShare,
 }: {
   variant: GifVariant;
   regenerating: boolean;
   downloading: boolean;
+  sharing: boolean;
   onRegenerate: () => void;
   onDownload: () => void;
+  onShare: () => void;
 }) {
+  const busy = downloading || sharing || regenerating;
   return (
     <div className="rounded-xl border border-panel-border bg-panel p-2">
       <div className="relative w-full overflow-hidden rounded-lg bg-black" style={{ containerType: "inline-size" }}>
@@ -58,7 +63,7 @@ function GifCard({
           <button
             type="button"
             onClick={onRegenerate}
-            disabled={regenerating || downloading}
+            disabled={busy}
             title="Régénérer"
             className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-panel-border hover:bg-secondary disabled:opacity-50"
           >
@@ -66,8 +71,17 @@ function GifCard({
           </button>
           <button
             type="button"
+            onClick={onShare}
+            disabled={busy}
+            title="Partager le GIF"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-panel-border hover:bg-secondary disabled:opacity-50"
+          >
+            {sharing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
             onClick={onDownload}
-            disabled={downloading || regenerating}
+            disabled={busy}
             className="inline-flex items-center gap-1 rounded-lg bg-purple px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
           >
             {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
@@ -152,8 +166,10 @@ export function GifMemeDirector() {
             variant={variant}
             regenerating={state.regeneratingId === variant.id}
             downloading={state.downloadingId === variant.id}
+            sharing={state.sharingId === variant.id}
             onRegenerate={() => void actions.regenerate(variant.id)}
             onDownload={() => void actions.download(variant)}
+            onShare={() => void actions.share(variant)}
           />
         ))}
       </div>

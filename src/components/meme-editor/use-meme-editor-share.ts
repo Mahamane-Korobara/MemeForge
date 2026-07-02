@@ -153,6 +153,7 @@ export function useMemeEditorShare({
 }: Params) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const shareMessage = useMemo(() => buildShareMessage(docName), [docName]);
   const shareLinks = useMemo(() => buildShareLinks(shareMessage), [shareMessage]);
@@ -167,32 +168,31 @@ export function useMemeEditorShare({
   const shareNative = useCallback(async () => {
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
       const blob = await createShareBlob();
       if (!blob) {
-        throw new Error("Impossible de préparer le fichier à partager");
+        throw new Error("Impossible de préparer le mème à partager");
       }
 
-      if (navigator.share) {
-        const fileName = videoSrc 
-          ? `${docName}_${format.w}x${format.h}.webm`
-          : `${docName}_${format.w}x${format.h}.png`;
-        
-        const file = new File([blob], fileName, { type: blob.type });
-        
-        const shareData: ShareData = {
-          files: [file],
-          title: shareMessage.title,
-          text: shareMessage.text,
-          url: shareMessage.url,
-        };
+      const fileName = videoSrc ? `${docName}_${format.w}x${format.h}.webm` : `${docName}_${format.w}x${format.h}.png`;
+      const file = new File([blob], fileName, { type: blob.type });
 
-        await navigator.share(shareData);
+      // On partage UNIQUEMENT le fichier (le mème lui-même), sans url ni texte,
+      // sinon beaucoup d'apps partagent le lien au lieu de l'image.
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: shareMessage.title });
         return;
       }
 
-      // Fallback : copier le lien si le partage natif n'est pas disponible
-      await copyText(shareMessage.url);
+      // Partage natif de fichier indisponible (souvent desktop) → on copie le mème.
+      if (!videoSrc && typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        setNotice("Partage natif indisponible ici : le mème a été copié, colle-le (Ctrl+V) où tu veux.");
+        return;
+      }
+
+      throw new Error("Le partage d'image n'est pas supporté par ce navigateur. Utilise « Télécharger » ou « Copier l'image ».");
     } catch (shareError) {
       if (shareError instanceof Error && shareError.name === "AbortError") {
         setError(null);
@@ -207,6 +207,7 @@ export function useMemeEditorShare({
   const copyImageToClipboard = useCallback(async () => {
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
       const blob = await createShareBlob();
       if (!blob) {
@@ -217,6 +218,7 @@ export function useMemeEditorShare({
       await navigator.clipboard.write([
         new ClipboardItem({ [blob.type]: blob }),
       ]);
+      setNotice("Mème copié dans le presse-papiers.");
     } catch (clipboardError) {
       setError(clipboardError instanceof Error ? clipboardError.message : "Copie impossible");
     } finally {
@@ -225,13 +227,16 @@ export function useMemeEditorShare({
   }, [createShareBlob]);
 
   const copyLink = useCallback(async () => {
+    setError(null);
     await copyText(shareMessage.url);
+    setNotice("Lien de l'app copié.");
   }, [shareMessage.url]);
 
   return {
     state: {
       busy,
       error,
+      notice,
       shareMessage,
       shareLinks,
       shareUrl: getSiteUrl(),
