@@ -28,7 +28,7 @@ function mapImgflipMeme(item: { id: string; name: string; url: string; width: nu
   const accent = accents[index % accents.length];
   const background = backgrounds[index % backgrounds.length];
   const headlines = ["Quand ça passe enfin", "Moi à minuit", "Réunion surprise", "Plan parfait", "Compilation réussie"];
-  const subtitles = ["Le résultat est parfois très sérieux.", "La scène qui parle toute seule.", "L'énergie parfaite pour un mème.", "Tout le monde a vu venir le problème.", "Le genre de mème qui fonctionne partout."];
+  const subtitles = ["Et ça marche", "Personne n'était prêt", "On garde ça", "C'était inévitable", "Trop tard maintenant"];
   const headline = headlines[index % headlines.length];
   const subtitle = subtitles[index % subtitles.length];
   const zoneLabel = `${item.box_count} zone${item.box_count > 1 ? "s" : ""} de texte`;

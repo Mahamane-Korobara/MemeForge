@@ -1,4 +1,4 @@
-import type { Element, Format } from "./types";
+import type { Element, Format, TextEl } from "./types";
 
 export type MemeModelLayout = "poster" | "split" | "caption" | "frame" | "comic";
 
@@ -180,9 +180,79 @@ export function modelToFormat(model: MemeModel): Format {
   };
 }
 
+// Ajuste la police pour qu'une légende tienne dans sa boîte (largeur + hauteur).
+function fitCaptionFont(text: string, boxW: number, boxH: number, maxFont: number) {
+  const CHAR = 0.5;
+  const LH = 1.02;
+  let fs = Math.max(16, Math.round(maxFont));
+  while (fs > 16) {
+    const perLine = Math.max(1, Math.floor(boxW / (fs * CHAR)));
+    const words = text.split(/\s+/).filter(Boolean);
+    let lines = 1;
+    let len = 0;
+    for (const word of words) {
+      if (len === 0) len = word.length;
+      else if (len + 1 + word.length <= perLine) len += 1 + word.length;
+      else {
+        lines += 1;
+        len = word.length;
+      }
+    }
+    const longest = words.reduce((m, w) => Math.max(m, w.length), 0) * fs * CHAR;
+    if (lines * fs * LH <= boxH && longest <= boxW) break;
+    fs -= 1;
+  }
+  return fs;
+}
+
+// Légende de mème classique : Impact MAJUSCULES blanc + contour noir, centrée.
+function makeCaptionElement(id: string, rawText: string, x: number, y: number, w: number, h: number, z: number, maxFont: number): TextEl {
+  const text = rawText.toUpperCase();
+  const fontSize = fitCaptionFont(text, w, h, maxFont);
+  return {
+    id,
+    type: "text",
+    text,
+    x,
+    y,
+    w,
+    h,
+    rotation: 0,
+    z,
+    fontFamily: "Impact",
+    fontSize,
+    color: "#ffffff",
+    bold: true,
+    underline: false,
+    align: "center",
+    bgColor: "transparent",
+    bgPadding: 0,
+    bgRadius: 0,
+    letterSpacing: 0.5,
+    lineHeight: 1.02,
+    outlineColor: "#000000",
+    outlineWidth: Math.max(3, Math.round(fontSize * 0.09)),
+  };
+}
+
 export function createModelElements(model: MemeModel, options: { usePageImage?: boolean } = {}): Element[] {
   const usePageImage = options.usePageImage ?? false;
   const format = modelToFormat(model);
+
+  // Template appliqué sur une vraie image : disposition mème classique (haut + bas).
+  if (usePageImage) {
+    const marginX = Math.round(format.w * 0.05);
+    const boxW = format.w - marginX * 2;
+    const boxH = Math.round(format.h * 0.22);
+    const maxFont = Math.min(format.w, format.h) * 0.12;
+    const topY = model.textY !== undefined ? Math.round((format.h * model.textY) / 100) : Math.round(format.h * 0.03);
+    const bottomY = model.subtitleY !== undefined ? Math.round((format.h * model.subtitleY) / 100) : Math.round(format.h * 0.75);
+    const elements: Element[] = [];
+    if (model.headline?.trim()) elements.push(makeCaptionElement(`headline-${model.id}`, model.headline, marginX, topY, boxW, boxH, 2, maxFont));
+    if (model.subtitle?.trim()) elements.push(makeCaptionElement(`subtitle-${model.id}`, model.subtitle, marginX, bottomY, boxW, boxH, 3, maxFont));
+    return elements;
+  }
+
   const marginX = Math.round(format.w * 0.08);
   const marginY = Math.round(format.h * 0.08);
   const titleSize = Math.max(40, Math.round(Math.min(format.w, format.h) * 0.09));

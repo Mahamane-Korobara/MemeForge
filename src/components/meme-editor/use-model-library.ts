@@ -30,11 +30,11 @@ const REAL_HEADLINES = [
 ];
 
 const REAL_SUBTITLES = [
-  "Le résultat est parfois très sérieux.",
-  "La scène qui parle toute seule.",
-  "L'énergie parfaite pour un mème.",
-  "Tout le monde a vu venir le problème.",
-  "Le genre de mème qui fonctionne partout.",
+  "Et ça marche",
+  "Personne n'était prêt",
+  "On garde ça",
+  "C'était inévitable",
+  "Trop tard maintenant",
 ];
 
 function mapRealModel(item: { id: string; name: string; url: string; width: number; height: number; box_count: number }, index: number): MemeModel {
