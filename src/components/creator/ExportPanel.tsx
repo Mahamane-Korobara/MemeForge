@@ -1,4 +1,5 @@
 import type { CreatorExportFormat } from "@/types/assets";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Props = {
   format: CreatorExportFormat;
@@ -15,14 +16,15 @@ export function ExportPanel({ format, onFormatChange, onExport, busy }: Props) {
           <h3 className="text-sm font-semibold">Export</h3>
           <p className="text-xs text-muted-foreground">Architecture prête pour WebP animé ou GIF.</p>
         </div>
-        <select
-          value={format}
-          onChange={(e) => onFormatChange(e.target.value as CreatorExportFormat)}
-          className="rounded-lg border border-panel-border bg-secondary px-3 py-2 text-sm outline-none"
-        >
-          <option value="webp">WebP animé</option>
-          <option value="gif">GIF</option>
-        </select>
+        <Select value={format} onValueChange={(value) => onFormatChange(value as CreatorExportFormat)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="webp">WebP animé</SelectItem>
+            <SelectItem value="gif">GIF</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <button

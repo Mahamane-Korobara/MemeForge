@@ -1,6 +1,7 @@
 import { Download, Film, Loader2, RefreshCw } from "lucide-react";
 import { GIF_COUNT_MAX, GIF_COUNT_MIN, type GifVariant, useGifMemeDirector } from "./use-gif-meme-director";
 import type { DirectorTone } from "./use-meme-director";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TONE_OPTIONS: Array<{ value: DirectorTone; label: string }> = [
   { value: "auto", label: "Auto (le plus drôle)" },
@@ -99,20 +100,21 @@ export function GifMemeDirector() {
       />
 
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-[11px] font-medium text-muted-foreground">
+        <div className="flex flex-col gap-1 text-[11px] font-medium text-muted-foreground">
           Ton
-          <select
-            value={state.tone}
-            onChange={(event) => actions.setTone(event.target.value as DirectorTone)}
-            className="rounded-lg border border-panel-border bg-panel px-2 py-1.5 text-sm text-foreground outline-none"
-          >
-            {TONE_OPTIONS.map((tone) => (
-              <option key={tone.value} value={tone.value}>
-                {tone.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select value={state.tone} onValueChange={(value) => actions.setTone(value as DirectorTone)}>
+            <SelectTrigger className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TONE_OPTIONS.map((tone) => (
+                <SelectItem key={tone.value} value={tone.value}>
+                  {tone.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <label className="flex flex-col gap-1 text-[11px] font-medium text-muted-foreground">
           <span className="flex items-center justify-between">
             Propositions <span className="rounded-full bg-secondary px-2 text-foreground">{state.count}</span>

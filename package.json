@@ -10,11 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.3.2",
+    "clsx": "^2.1.1",
     "gifenc": "^1.0.3",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.1",
     "vite-plugin-static-copy": "^3.4.0",
     "webp-encoder": "^2.1.2"

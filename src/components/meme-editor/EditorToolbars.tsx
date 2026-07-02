@@ -15,6 +15,9 @@ import type { ReactNode } from "react";
 import { FONTS } from "./constants";
 import type { ShapeEl, TextEl } from "./types";
 import { TextAdvancedControls } from "./TextAdvancedControls";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const FONT_SIZES = [12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 124, 160, 200];
 
 type ToolbarProps = {
   onDuplicate: () => void;
@@ -115,34 +118,42 @@ export function TextToolbar({
         <Underline className="h-4 w-4" />
       </button>
       <div className="mx-1 h-5 w-px bg-panel-border" />
-      <select
+      <Select
         value={el.fontFamily}
-        onChange={(e) => {
-          onChange({ fontFamily: e.target.value });
+        onValueChange={(value) => {
+          onChange({ fontFamily: value });
           onCommit();
         }}
-        className="rounded bg-transparent px-2 py-1 text-sm outline-none hover:bg-secondary"
       >
-        {FONTS.map((font) => (
-          <option key={font} value={font}>
-            {font}
-          </option>
-        ))}
-      </select>
-      <select
-        value={el.fontSize}
-        onChange={(e) => {
-          onChange({ fontSize: Number(e.target.value) });
+        <SelectTrigger className="h-8 w-32 border-transparent bg-transparent hover:bg-secondary">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {FONTS.map((font) => (
+            <SelectItem key={font} value={font}>
+              {font}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={String(el.fontSize)}
+        onValueChange={(value) => {
+          onChange({ fontSize: Number(value) });
           onCommit();
         }}
-        className="rounded bg-transparent px-2 py-1 text-sm outline-none hover:bg-secondary"
       >
-        {[12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 124, 160, 200].map((size) => (
-          <option key={size} value={size}>
-            {size}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="h-8 w-[4.5rem] border-transparent bg-transparent hover:bg-secondary">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {FONT_SIZES.map((size) => (
+            <SelectItem key={size} value={String(size)}>
+              {size}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <div className="mx-1 h-5 w-px bg-panel-border" />
       {(["left", "center", "right"] as const).map((align) => {
         const Icon = align === "left" ? AlignLeft : align === "center" ? AlignCenter : AlignRight;

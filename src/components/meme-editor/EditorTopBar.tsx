@@ -1,6 +1,9 @@
-import { ChevronDown, Crop, FileText, Home, Lock, PanelLeft, Redo2, Share2, Undo2 } from "lucide-react";
+import { Crop, FileText, Home, Lock, PanelLeft, Redo2, Share2, Undo2 } from "lucide-react";
 import type { Format } from "./types";
 import { FORMATS } from "./constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const ZOOM_LEVELS = [25, 50, 75, 100, 125, 150, 200];
 
 type Props = {
   docName: string;
@@ -69,26 +72,19 @@ export function EditorTopBar({
               <span className="truncate">{formatLockLabel ?? "Format verrouillé"}</span>
             </button>
           ) : (
-            <div className="relative">
-              <button className="inline-flex max-w-[15rem] items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium hover:bg-purple-soft">
+            <Select value={format.id} onValueChange={(value) => onFormatChange(FORMATS.find((item) => item.id === value) ?? FORMATS[0])}>
+              <SelectTrigger aria-label="Format" className="h-auto max-w-[15rem] gap-1.5 rounded-md border-transparent bg-secondary px-2.5 py-1.5 text-xs font-medium hover:bg-purple-soft">
                 <Crop className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{format.label}</span>
-                <span className="hidden text-muted-foreground xl:inline">({format.w}×{format.h})</span>
-                <ChevronDown className="h-3 w-3 shrink-0" />
-              </button>
-              <select
-                aria-label="Format"
-                value={format.id}
-                onChange={(e) => onFormatChange(FORMATS.find((item) => item.id === e.target.value) ?? FORMATS[0])}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 {FORMATS.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
+                  <SelectItem key={item.id} value={item.id} textValue={item.label}>
+                    {item.label} <span className="text-muted-foreground">({item.w}×{item.h})</span>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
           )}
 
           <button
@@ -125,18 +121,22 @@ export function EditorTopBar({
           <button onClick={onRedo} className="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Rétablir">
             <Redo2 className="h-4 w-4" />
           </button>
-          <select
-            value={zoom}
-            onChange={(e) => onZoomChange(e.target.value === "fit" ? "fit" : Number(e.target.value))}
-            className="rounded bg-transparent text-sm outline-none ring-1 ring-transparent hover:bg-secondary focus:ring-panel-border"
+          <Select
+            value={zoom === "fit" ? "fit" : String(zoom)}
+            onValueChange={(value) => onZoomChange(value === "fit" ? "fit" : Number(value))}
           >
-            <option value="fit">Adapter</option>
-            {[25, 50, 75, 100, 125, 150, 200].map((value) => (
-              <option key={value} value={value}>
-                {value}%
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="h-8 w-[6.5rem] border-transparent bg-transparent hover:bg-secondary">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fit">Adapter</SelectItem>
+              {ZOOM_LEVELS.map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value}%
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </header>

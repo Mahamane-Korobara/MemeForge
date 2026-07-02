@@ -1,6 +1,7 @@
 import { Loader2, RefreshCw, Sparkles, Wand2 } from "lucide-react";
 import { DIRECTOR_COUNT_MAX, DIRECTOR_COUNT_MIN, type DirectorTone, type MemeVariant, useMemeDirector } from "./use-meme-director";
 import { displayZoneText, type MemeFormat, type ZoneSize } from "./meme-formats";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Props = {
   onApplyMeme: (format: MemeFormat, fills: Record<string, string>) => void;
@@ -72,20 +73,21 @@ export function MemeDirector({ onApplyMeme }: Props) {
       />
 
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-[11px] font-medium text-muted-foreground">
+        <div className="flex flex-col gap-1 text-[11px] font-medium text-muted-foreground">
           Ton
-          <select
-            value={state.tone}
-            onChange={(event) => actions.setTone(event.target.value as DirectorTone)}
-            className="rounded-lg border border-panel-border bg-panel px-2 py-1.5 text-sm text-foreground outline-none"
-          >
-            {TONE_OPTIONS.map((tone) => (
-              <option key={tone.value} value={tone.value}>
-                {tone.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select value={state.tone} onValueChange={(value) => actions.setTone(value as DirectorTone)}>
+            <SelectTrigger className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TONE_OPTIONS.map((tone) => (
+                <SelectItem key={tone.value} value={tone.value}>
+                  {tone.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <label className="flex flex-col gap-1 text-[11px] font-medium text-muted-foreground">
           <span className="flex items-center justify-between">
             Propositions <span className="rounded-full bg-secondary px-2 text-foreground">{state.count}</span>
